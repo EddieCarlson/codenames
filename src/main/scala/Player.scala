@@ -8,3 +8,9 @@ case object Bystander extends CardType
 case object Assassin extends CardType
 
 case class Player(id: String, team: Team)
+
+object TeamOps {
+  implicit def not(team: Team): Team =
+    if (team == Blue) Red
+    else Blue
+}

@@ -1,6 +1,7 @@
 import java.util.UUID
 
-import scalaz.State
+import scalaz.{-\/, State, \/, \/-}
+import TeamOps._
 
 object Game {
   type GameState[A] = State[Game, A]
@@ -10,13 +11,17 @@ object Game {
   }
 }
 
-case class Game(players: Seq[Player], currentTeam: Team, board: Board) {
+case class Game(players: Seq[Player], currentTeam: Team, board: Board, isOver: Boolean) {
 
-  def needsPlayers: Team = {
-    val (redCount, blueCount) = players.foldLeft((0, 0)) { case ((red, blue), p) =>
+  def playerCount: (Int, Int) = {
+    players.foldLeft((0, 0)) { case ((red, blue), p) =>
       if (p.team == Red) (red + 1, blue)
       else (red, blue + 1)
     }
+  }
+
+  def needsPlayers: Team = {
+    val (redCount, blueCount) = playerCount
 
     if (redCount < blueCount) Red
     else if (redCount > blueCount) Blue
@@ -28,6 +33,18 @@ case class Game(players: Seq[Player], currentTeam: Team, board: Board) {
   def registerPlayer(team: Team = needsPlayers): Game = {
     val id = UUID.randomUUID().toString
     copy(players = players :+ Player(id, team))
+  }
+
+  def pick(id: String, x: Int, y: Int): Game = {
+    players.find(_.id == id).filter(_.team == currentTeam).map { p =>
+      val cardType = board.pick(x, y)
+      if (cardType == Assassin) copy(currentTeam = not(p.team), isOver = true)
+      else {
+        val isOver = board.winner.isDefined
+        if (cardType == p.team) copy(isOver = isOver)
+        else copy(currentTeam = not(p.team), isOver = isOver) // bystander or other team's card
+      }
+    }.getOrElse(this)
   }
 }
 
