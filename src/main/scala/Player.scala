@@ -1,11 +1,26 @@
+import scala.util.Random
 
+object CardType {
+  def createRandomCardTypeList = {
+    val (redCount, blueCount) = if (Random.nextBoolean()) (9, 8) else (8, 9)
+    val reds = makeSeq(Red, redCount)
+    val blues = makeSeq(Blue, blueCount)
+    val bystanders = makeSeq(Bystander, 7)
+    val assassins = Seq(Assassin)
+    Random.shuffle(reds ++ blues ++ bystanders ++ assassins)
+  }
 
-sealed trait CardType
+  def makeSeq(cardType: CardType, num: Int) = {
+    1.to(num).map(_ => cardType)
+  }
+}
+
+sealed trait CardType { val color: String }
 sealed trait Team extends CardType
-case object Red extends Team
-case object Blue extends Team
-case object Bystander extends CardType
-case object Assassin extends CardType
+case object Red extends Team { val color = Console.RED }
+case object Blue extends Team { val color = Console.BLUE }
+case object Bystander extends CardType { val color = Console.YELLOW }
+case object Assassin extends CardType { val color = Console.BLACK }
 
 case class Player(id: String, team: Team)
 
