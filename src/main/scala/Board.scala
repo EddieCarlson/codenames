@@ -56,12 +56,15 @@ trait Board {
   lazy val flatGrid = grid.flatten
   lazy val assassinCard = flatGrid.find(_.cardType == Assassin)
   lazy val (redWinCount, blueWinCount) = count()
+  lazy val firstTeam: Team = if (redWinCount > blueWinCount) Red else Blue
 
   def pick(x: Int, y: Int, team: Team): CardType = {
     val card = grid(x)(y)
     card.revealedBy = Some(team)
     card.cardType
   }
+
+  def hasBeenPicked(x: Int, y: Int): Boolean = grid(x)(y).revealedBy.isDefined
 
   def count(countAll: Boolean = true): (Int, Int) = {
     def shouldCount(card: Card) = countAll || card.isRevealed
