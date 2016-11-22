@@ -3,16 +3,17 @@ import GameResponses._
 import akka.actor.{Actor, ActorRef}
 
 object GameRequests {
-  case class Pick(id: String, x: Int, y: Int)
-  case class GiveClue(numWords: Int)
-  case class RegisterPlayer(id: String)
-  case class UnregisterPlayer(id: String)
+  case class Pick(name: String, x: Int, y: Int)
+  case class GiveClue(name: String, numWords: Int)
+  case class RegisterPlayer(name: String)
+  case class UnregisterPlayer(name: String)
   case class RegisterCodemaster(name: String, team: Team)
   case class UnregisterCodemaster(name: String)
   case class SetPlayerTeam(name: String, team: Team)
   case class SetPlayerName(oldName: String, newName: String)
   case class SetPlayerReady(name: String, ready: Boolean = true)
   case object StartGame
+  case object GetGame
 }
 
 object GameResponses {
@@ -29,7 +30,8 @@ class GameActor extends Actor {
   var game: Game = Game.create
 
   def receive: Receive = registerPlayers orElse registerCodemasters orElse {
-    case StartGame => ???
+    case GetGame => sender ! game
+    case StartGame => become(codemasterPlay)
   }
 
   def registerCodemasters: Receive = {
@@ -65,17 +67,19 @@ class GameActor extends Actor {
   }
 
   def codemasterPlay: Receive = {
-    case GiveClue(numWords) => game.gamePhase match {
-      case phase: CodemasterPhase => phase.becomePlayerPhase(numWords)
-      case _ =>
-    }
+    case GiveClue(name, numWords) =>
+      (game.getPlayer(name), game.gamePhase) match {
+        case (Some(Player(_, team, true, _)), phase: CodemasterPhase) if team == phase.currentTeam =>
+          phase.becomePlayerPhase(numWords)
+        case _ =>
+      }
   }
 
   def registerPlayers: Receive = {
     case RegisterPlayer(name) if game.getPlayer(name).isDefined =>
       sender ! CannotRegisterPlayer(s"player with name '$name' already exists")
     case RegisterPlayer(name) =>
-      val player = Player(name, Bystander)
+      val player = Player(name, Unassigned)
       game = game.addPlayer(player)
       sender ! player
     case UnregisterPlayer(name) =>
@@ -94,10 +98,13 @@ class GameActor extends Actor {
         sender ! newP
       })
     case SetPlayerReady(name, ready) =>
-      sendToPlayer(name, p => {
-        val newP = p.copy(isReady = ready)
-        game = game.addPlayer(newP)
-        sender ! newP
+      sendToPlayer(name, p => { // player must have assigned team to be ready
+        if (p.team == Unassigned) sender ! p
+        else {
+          val newP = p.copy(isReady = ready)
+          game = game.addPlayer(newP)
+          sender ! newP
+        }
       })
   }
 }

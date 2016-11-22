@@ -33,7 +33,10 @@ case class Game(players: Set[Player], board: Board, gamePhase: GamePhase) {
   val codemasters = players.filter(_.isCodemaster)
   val isReady = players.forall(_.isReady) && codemasters.size == 2 && codemasters.map(_.team).size == 2
 
-  def addPlayer(p: Player) = removePlayer(p.name).copy(players = players + p)
+  def addPlayer(p: Player) = {
+    val removed = removePlayer(p.name)
+    removed.copy(players = removed.players + p)
+  }
   def removePlayer(name: String) = copy(players = players.filterNot(_.name == name))
   def getPlayer(name: String) = {
     val lowerName = name.toLowerCase

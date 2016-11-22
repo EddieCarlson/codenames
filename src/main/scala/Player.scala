@@ -19,7 +19,8 @@ sealed trait CardType { val color: String }
 sealed trait Team extends CardType
 case object Red extends Team { val color = Console.RED }
 case object Blue extends Team { val color = Console.BLUE }
-case object Bystander extends Team { val color = Console.YELLOW }
+case object Unassigned extends Team { val color = Console.YELLOW }
+case object Bystander extends CardType { val color = Console.YELLOW }
 case object Assassin extends CardType { val color = Console.BLACK }
 
 case class Player(name: String, team: Team, isCodemaster: Boolean = false, isReady: Boolean = false)
