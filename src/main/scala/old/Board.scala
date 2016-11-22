@@ -1,14 +1,15 @@
-import TeamOps._
+package old
+/*
+import old.TeamOps._
 
 import scala.util.Random
 
 case object Card {
   val displaySize = 18
-
-  def apply(word: String, cardType: CardType): Card = Card(word, cardType)
 }
 
-case class Card(word: String, cardType: CardType, isRevealed: Boolean = false) {
+case class Card(word: String, cardType: CardType, var revealedBy: Option[Team] = None) {
+  def isRevealed = revealedBy.isDefined
 
   def format(coloredWord: String) = {
     val length = word.length
@@ -34,9 +35,12 @@ object Board {
   def create(words: Seq[String] = Game.words): Board = {
     val chosenWords = Random.shuffle(words).take(25)
     val cardTypes = CardType.createRandomCardTypeList
-    val cardT = Function.tupled(Card.apply _)
-    val cards = chosenWords.zip(cardTypes).map(cardT)
-    Board(cards)
+    val cards = chosenWords.zip(cardTypes).map {
+      case (word, cardType) => Card(word, cardType)
+    }
+    new Board {
+      val grid = toGrid(cards, 5)
+    }
   }
 
   def toGrid[A](as: Seq[A], perRow: Int): Seq[Seq[A]] = {
@@ -48,51 +52,50 @@ object Board {
   }
 }
 
-case class Board(cards: Seq[Card]) {
-  val assassinCard = cards.find(_.cardType == Assassin)
-  val (redWinCount, blueWinCount) = count()
-  val firstTeam: Team = if (redWinCount > blueWinCount) Red else Blue
+trait Board {
 
-  def pick(i: Int): (Board, CardType) = {
-    val card = cards(i)
-    val newCards = cards.splitAt(i)
+  val grid: Seq[Seq[Card]]
+  lazy val flatGrid = grid.flatten
+  lazy val assassinCard = flatGrid.find(_.cardType == Assassin)
+  lazy val (redWinCount, blueWinCount) = count()
+  lazy val firstTeam: Team = if (redWinCount > blueWinCount) Red else Blue
+
+  def pick(x: Int, y: Int, team: Team): CardType = {
+    val card = grid(x)(y)
+    card.revealedBy = Some(team)
     card.cardType
   }
 
-  def hasBeenPicked(i: Int): Boolean = cards(i).isRevealed
+  def hasBeenPicked(x: Int, y: Int): Boolean = grid(x)(y).revealedBy.isDefined
 
   def count(countAll: Boolean = true): (Int, Int) = {
     def shouldCount(card: Card) = countAll || card.isRevealed
-    def getNumCards(ct: CardType) = cards.count(c => c.cardType == ct && shouldCount(c))
 
-    val redCount = getNumCards(Red)
-    val blueCount = getNumCards(Blue)
-
-    (redCount, blueCount)
+    flatGrid.foldLeft((0, 0)) { case ((red, blue), card) =>
+      if (card.cardType == Red && shouldCount(card)) (red + 1, blue)
+      else if (shouldCount(card)) (red, blue + 1)
+      else (red, blue)
+    }
   }
 
-  val score: (Int, Int) = count(countAll = false)
+  def score: (Int, Int) = count(countAll = false)
 
-  val nonAssassinWinner = {
+  def winner: Option[Team] = {
+    assassinCard.flatMap(_.revealedBy.map(not).orElse(nonAssassinWinner))
+  }
+
+  def nonAssassinWinner = {
     val (red, blue) = score
     if (red == redWinCount) Some(Red)
     else if (blue == blueWinCount) Some(Blue)
     else None
   }
 
-  val isOver = nonAssassinWinner.isDefined || assassinCard.exists(_.isRevealed)
-
-  def displayGrid(isCodemaster: Boolean) = {
-    val grid = Board.toGrid(cards, Math.ceil(Math.sqrt(cards.size)).toInt)
+  def display(isCodemaster: Boolean) = {
    "\n" +
     grid.map(row => row.map(_.toDisplayString(isCodemaster)).mkString("")).mkString("\n\n\n") +
     "\n"
   }
 
-  def displayList(isCodemaster: Boolean) = {
-    "\n" +
-    cards.map(_.toDisplayString(isCodemaster).mkString("")).mkString("\n\n") +
-    "\n"
-  }
-
 }
+*/

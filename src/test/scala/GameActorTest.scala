@@ -120,8 +120,6 @@ class GameActorTest extends FunSpec with Matchers {
             else
               (red, blue)
         }
-
-        gameActor ! GiveClue(teamOne.)
       }
     }
   }

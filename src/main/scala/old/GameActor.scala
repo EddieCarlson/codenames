@@ -1,15 +1,35 @@
-import GameRequests._
-import akka.actor.{Actor, ActorRef}
+package old
+/*
+import akka.actor.Actor
+import old.GameRequests._
+import old.GameResponses._
 
 object GameRequests {
-  case class Pick(i: Int)
+  case class Pick(name: String, x: Int, y: Int)
+  case class GiveClue(name: String, numWords: Int)
+  case class RegisterPlayer(name: String)
+  case class UnregisterPlayer(name: String)
+  case class RegisterCodemaster(name: String, team: Team)
+  case class UnregisterCodemaster(name: String)
+  case class SetPlayerTeam(name: String, team: Team)
+  case class SetPlayerName(oldName: String, newName: String)
+  case class SetPlayerReady(name: String, ready: Boolean = true)
+  case object StartGame
   case object GetGame
+}
+
+object GameResponses {
+  case object PlayerIsCodemaster
+  case class CannotRegisterPlayer(reason: String)
+  case class PlayerCannotBeCodemaster(reason: String)
+  case class UnknownPlayer(name: String)
+  case object PlayerUnregistered
 }
 
 class GameActor extends Actor {
   import context.become
 
-  var board: Board = Board.create(Game.words)
+  var game: Game = Game.create
 
   def receive: Receive = registerPlayers orElse registerCodemasters orElse {
     case GetGame => sender ! game
@@ -90,3 +110,4 @@ class GameActor extends Actor {
       })
   }
 }
+*/
