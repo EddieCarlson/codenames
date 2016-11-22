@@ -55,8 +55,9 @@ case class Board(cards: Seq[Card]) {
 
   def pick(i: Int): (Board, CardType) = {
     val card = cards(i)
-    val newCards = cards.splitAt(i)
-    card.cardType
+    val (newCardsStart, newCardsEnd) = cards.splitAt(i)
+    val newCards = (newCardsStart :+ card.copy(isRevealed = true)) ++ newCardsEnd.drop(1)
+    (Board(newCards), card.cardType)
   }
 
   def hasBeenPicked(i: Int): Boolean = cards(i).isRevealed
