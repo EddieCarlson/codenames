@@ -1,12 +1,12 @@
-import GameRequests._
-import GameResponses._
+package old
+/*
 import akka.actor._
 import org.scalatest.{FunSpec, Matchers}
 import akka.pattern.ask
-import TeamOps.not
+import org.scalatest.{FunSpec, Matchers}
 
 import scala.concurrent._
-import duration._
+import scala.concurrent.duration._
 
 class GameActorTest extends FunSpec with Matchers {
 
@@ -124,3 +124,4 @@ class GameActorTest extends FunSpec with Matchers {
     }
   }
 }
+*/

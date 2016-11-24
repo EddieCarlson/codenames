@@ -1,14 +1,21 @@
 import TeamOps._
 
 import scala.util.Random
+import scala.xml.Elem
 
 case object Card {
   val displaySize = 18
-
-  def apply(word: String, cardType: CardType): Card = Card(word, cardType)
 }
 
 case class Card(word: String, cardType: CardType, isRevealed: Boolean = false) {
+
+  def shouldDisplay(isCodemaster: Boolean) = isRevealed || isCodemaster
+
+  def tag(isCodemaster: Boolean): Elem = {
+    val klass = if (!shouldDisplay(isCodemaster)) "unknown" else cardType.getClass.getSimpleName.toLowerCase.replaceAllLiterally("$", "")
+    <div class={s"card $klass"}>{word}</div>
+  }
+
 
   def format(coloredWord: String) = {
     val length = word.length
@@ -34,7 +41,7 @@ object Board {
   def create(words: Seq[String] = Game.words): Board = {
     val chosenWords = Random.shuffle(words).take(25)
     val cardTypes = CardType.createRandomCardTypeList
-    val cardT = Function.tupled(Card.apply _)
+    val cardT = Function.tupled(Card(_: String, _: CardType, isRevealed = false))
     val cards = chosenWords.zip(cardTypes).map(cardT)
     Board(cards)
   }
