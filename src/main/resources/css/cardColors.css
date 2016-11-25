@@ -1,0 +1,19 @@
+.card {
+    color: black;
+}
+.red {
+    background-color: red;
+}
+.unknown {
+    background-color: lightgrey;
+}
+.blue {
+    background-color: blue;
+}
+.bystander {
+    background-color: yellow;
+}
+.assassin {
+    background-color: black;
+    color: white;
+}

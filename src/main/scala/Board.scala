@@ -59,6 +59,7 @@ case class Board(cards: Seq[Card]) {
   val assassinCard = cards.find(_.cardType == Assassin)
   val (redWinCount, blueWinCount) = count()
   val firstTeam: Team = if (redWinCount > blueWinCount) Red else Blue
+  def tags(isCodemaster: Boolean) = cards.map(_.tag(isCodemaster))
 
   def pick(i: Int): (Board, CardType) = {
     val card = cards(i)

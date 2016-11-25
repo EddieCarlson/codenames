@@ -6,18 +6,3 @@
     padding-top: 0.5em;
     padding-bottom: 0.5em;
 }
-.red {
-    background-color: red;
-}
-.unknown {
-    background-color: lightgrey;
-}
-.blue {
-    background-color: blue;
-}
-.bystander {
-    background-color: yellow;
-}
-.assassin {
-    background-color: darkgrey;
-}

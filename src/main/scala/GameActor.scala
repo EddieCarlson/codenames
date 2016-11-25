@@ -5,48 +5,69 @@ import akka.io._
 import spray.http._
 import MediaTypes._
 import spray.routing.HttpService
+import akka.pattern.ask
+import akka.util.Timeout
+import spray.httpx.marshalling.ToResponseMarshallable
+import spray.routing.directives.{OnCompleteFutureMagnet, OnSuccessFutureMagnet}
+import spray.routing.directives.OnSuccessFutureMagnet._
 
-import scala.xml.{Elem, Node}
+import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.util.Success
+import scala.xml._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object GameRequests {
   case class Pick(i: Int)
-  case object GetGame
+  case class GetGame(isCodemaster: Boolean)
 }
 
-class GameActor extends Actor {
-  import context.become
-
+class GameActor(id: String) extends Actor {
   var board: Board = Board.create()
 
+  def controlTags = board.tags(isCodemaster = false).zipWithIndex.map {
+    case (t, i) => <a href={s"/game/$id/pick/$i"}>{t}</a>
+  }
+
   def receive: Receive = {
-    case Pick(i: Int) => {
-      val (newBoard, cardType) = board.pick(i)
-      if (newBoard.isOver)
+    case GetGame(false) =>
+      sender ! n(controlTags, isGrid = true)
+    case GetGame(true) =>
+      sender ! n(board.tags(isCodemaster = true), isGrid = true)
+    case Pick(i: Int) =>
+      val (newBoard, _) = board.pick(i)
       board = newBoard
-    }
+      sender ! n(controlTags, isGrid = true)
+  }
+
+  def n(tags: Seq[Elem], isGrid: Boolean) = {
+    val body = <body>{<div class="grid"></div>.copy(child = tags)}</body>
+    val head: Elem = <head></head>.copy(child = cssLinks(isGrid))
+
+    val html =
+      <html>
+        {head}
+        {body}
+      </html>
+
+    html
+  }
+
+  def cssLinks(isGrid: Boolean) = {
+    val css = if (isGrid) "gameGrid.css" else "game.css"
+    Seq(<link rel="stylesheet" type="text/css" href="/css/cardColors.css"></link>,
+      <link rel="stylesheet" type="text/css" href={s"/css/$css"}></link>)
   }
 }
 
-class GameManager extends Actor {
-
-  def receive: Receive = {
-    // when a new connection comes in we register ourselves as the connection handler
-    case _: Http.Connected => sender ! Http.Register(self)
-
-    case HttpRequest(HttpMethods.GET, Uri.Path("/new"), _, _, _) =>
-      sender ! HttpResponse(entity = HttpEntity(`text/html`, <h1>hi</h1>.toString))
-
-//    case HttpRequest(HttpMethods.GET, Uri.Path("/css"), _, _, _) =>
-//      sender ! HttpResponse(entity = HttpEntity(`text/html`, css))
-  }
-
-}
-
-class GameManagerR extends Actor with HttpService {
+class GameManager extends Actor with HttpService {
 
   def actorRefFactory: ActorRefFactory = context
+  implicit val timeout = Timeout(2.seconds)
 
   def receive = runRoute(route)
+
+  var games = Map.empty[String, ActorRef]
 
   val route =
     get {
@@ -64,21 +85,57 @@ class GameManagerR extends Actor with HttpService {
       } ~
       path("newGridPlayer") {
         complete(n(newBoardTags(false), isGrid = true))
+      } ~
+      path("game" / Segment / "pick" / IntNumber) { case (id, i) =>
+        games.get(id) match {
+          case Some(ga) => onComplete(actorResponse(ga, Pick(i))) {
+            case Success(x: Elem) => complete(x)
+          }
+          case None => complete(s"no game with id '$id' currently exists")
+        }
+      } ~
+      path("game" / Segment / "codemaster") { id =>
+        games.get(id) match {
+          case Some(ga) => onComplete(actorResponse(ga, GetGame(true))) {
+            case Success(x: Elem) => complete(x)
+          }
+          case None => complete(s"no game with id '$id' currently exists")
+        }
+      } ~
+      path("game" / Segment) { id =>
+        val gameActor = games.get(id).getOrElse {
+          val ga = context.actorOf(Props(new GameActor(id)), s"gameActor-$id")
+          games = games + (id -> ga)
+          ga
+        }
+        onComplete(actorResponse(gameActor, GetGame(false))) {
+          case Success(x: Elem) => complete(x)
+        }
       }
     }
 
-  def newBoardTags(isCodemaster: Boolean): Seq[Elem] = Board.create().cards.map(_.tag(isCodemaster))
+  def actorResponse(actor: ActorRef, msg: Any) = OnCompleteFutureMagnet.apply(actor ? msg)
+
+  def newBoardTags(isCodemaster: Boolean): Seq[Elem] = Board.create().tags(isCodemaster)
 
   def n(tags: Seq[Elem], isGrid: Boolean) = {
     val body = <body>{<div class="grid"></div>.copy(child = tags)}</body>
-    val css = if (isGrid) "css/gameGrid.css" else "css/game.css"
-    <html>
-      <head>
-        <link rel="stylesheet" type="text/css" href={css}></link>
-      </head>
-      {body}
-    </html>
+    val head: Elem = <head></head>.copy(child = cssLinks(isGrid))
+
+    val html =
+      <html>
+        {head}
+        {body}
+      </html>
+
+    html
   }
+
+  def cssLinks(isGrid: Boolean) = {
+    val css = if (isGrid) "gameGrid.css" else "game.css"
+    Seq(<link rel="stylesheet" type="text/css" href="css/cardColors.css"></link>,
+      <link rel="stylesheet" type="text/css" href={s"css/$css"}></link>)
+    }
 
   def index =
     <html>
@@ -95,7 +152,7 @@ class GameManagerR extends Actor with HttpService {
 object Main extends App {
 
   implicit val sys = ActorSystem("gameSystem")
-  val gm = sys.actorOf(Props[GameManagerR]())
+  val gm = sys.actorOf(Props[GameManager]())
 
   IO(Http) ! Http.Bind(gm, interface = "localhost", port = 8080)
 }
